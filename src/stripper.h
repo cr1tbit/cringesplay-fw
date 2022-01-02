@@ -1,0 +1,1 @@
+void stripper_task(void * parameter);
