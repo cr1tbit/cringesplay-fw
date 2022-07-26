@@ -1,10 +1,17 @@
 #include <Arduino.h>
 
 #include "netUtils.h"
+#include <Button2.h>
+
 
 #include "stripper.h"
 #include "elceder.h"
 
+Button2 button;
+
+void pressCB(Button2& btn) {
+  Serial.println("1");
+}
 
 void spawn_tasks();
 
@@ -12,6 +19,10 @@ void setup()
 {
   Serial.begin(115200);
   spawn_tasks();
+
+  button.begin(35,INPUT,false, true);
+
+  button.setTapHandler(pressCB);
 }
 
 
@@ -22,6 +33,8 @@ void serial_read_tast(void* params){
   Serial.setTimeout(0);
 
   while (true){
+    button.loop();
+
     int byte = Serial.read();
     if (byte == 13){
       elceder_fill_row(0,"%-16s     ",str_buf);
@@ -34,7 +47,7 @@ void serial_read_tast(void* params){
         str_buf[buf_ptr++] = (char)byte;
       }
     } else {
-      vTaskDelay(100);
+      vTaskDelay(50);
     }
   }
 
