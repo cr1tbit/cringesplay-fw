@@ -1,16 +1,10 @@
 #include <Arduino.h>
 
-
-//#include "wifi_creds.h"
 #include "netUtils.h"
 
 #include "stripper.h"
 #include "elceder.h"
 
-
-//unsigned long lastRequest = 0;
-//StaticJsonDocument<512> json;
-//StaticJsonDocument<512> getWhois();
 
 void spawn_tasks();
 
@@ -20,25 +14,31 @@ void setup()
   spawn_tasks();
 }
 
-/*
-void diagnostics_task(void * parameter){
-  char diag_buff[256];
 
+void serial_read_tast(void* params){
+  static int buf_ptr = 0;
+  static char str_buf[16] = {0};
 
-  TickType_t xLastWakeTime;
-  const TickType_t xFrequency = 100;
-  xLastWakeTime = xTaskGetTickCount();
+  Serial.setTimeout(0);
 
-  while(1){
-    vTaskGetRunTimeStats((char*)&diag_buff);
-    //Serial.println((char*)&diag_buff);
-    Serial.println("test");
-
-    vTaskDelayUntil(&xLastWakeTime,xFrequency);
-
+  while (true){
+    int byte = Serial.read();
+    if (byte == 13){
+      elceder_fill_row(0,"%-16s     ",str_buf);
+      buf_ptr = 0;
+      memset(str_buf,0x00,16);
+      continue;
+    }
+    if (byte > 0){
+      if (buf_ptr < 16){
+        str_buf[buf_ptr++] = (char)byte;
+      }
+    } else {
+      vTaskDelay(100);
+    }
   }
+
 }
-*/
 
 void spawn_tasks(){
   xTaskCreate(
@@ -68,6 +68,15 @@ void spawn_tasks(){
     NULL
   );
   
+  xTaskCreate(
+    serial_read_tast,
+    "serial task",
+    10000,
+    NULL,
+    3,
+    NULL
+  );
+
 }
 
 void loop(){
@@ -75,3 +84,26 @@ void loop(){
   elceder_fill_row(1,"test %d",test++);
   vTaskDelay(1000);
 }
+
+
+//this will print CPU usage stats at some point
+
+/*
+void diagnostics_task(void * parameter){
+  char diag_buff[256];
+
+
+  TickType_t xLastWakeTime;
+  const TickType_t xFrequency = 100;
+  xLastWakeTime = xTaskGetTickCount();
+
+  while(1){
+    vTaskGetRunTimeStats((char*)&diag_buff);
+    //Serial.println((char*)&diag_buff);
+    Serial.println("test");
+
+    vTaskDelayUntil(&xLastWakeTime,xFrequency);
+
+  }
+}
+*/
