@@ -3,7 +3,7 @@
 #include "netUtils.h"
 #include <Button2.h>
 
-
+#include "pinDefs.h"
 #include "stripper.h"
 #include "elceder.h"
 
@@ -20,7 +20,7 @@ void setup()
   Serial.begin(115200);
   spawn_tasks();
 
-  button.begin(35,INPUT,false, true);
+  button.begin(PIN_BUT,INPUT,false, true);
 
   button.setTapHandler(pressCB);
 }
