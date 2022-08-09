@@ -28,15 +28,11 @@ void elceder_init(){
     lcd.backlight();
     lcd.begin(16, 2); // initialize the lcd
 
-
     lcd.home(); // go home
-
 
     elceder_msg_queue = xQueueCreate( 2, sizeof( elceder_msg_t ) );
     if (elceder_msg_queue == NULL){
         lcd.print("queue failed");
-    } else {
-        lcd.print("queue OK");
     }
 }
 

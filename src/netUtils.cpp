@@ -86,14 +86,14 @@ void connect()
     timeoutCounterMs+=100;
     vTaskDelay(100);
 
-    if (timeoutCounterMs > WIFI_RST_TIMEOUT_MS){
-      ESP.restart();
-    }
+    // if (timeoutCounterMs > WIFI_RST_TIMEOUT_MS){
+    //   ESP.restart();
+    // }
   }
 
   //lcd.print(WiFi.localIP());
   //void elceder_fill_row(0,"%s",WiFi.localIP());
-  elceder_fill_row(0,"%s",WiFi.localIP().toString());
+  elceder_fill_row(0,"%s",WiFi.localIP().toString().c_str());
   vTaskDelay(1000);
 
   //json = getWhois();

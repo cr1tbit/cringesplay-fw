@@ -23,10 +23,12 @@ void setup()
   button.begin(PIN_BUT,INPUT,false, true);
 
   button.setTapHandler(pressCB);
+
+  pinMode(PIN_LED, OUTPUT);
 }
 
 
-void serial_read_tast(void* params){
+void serial_read_task(void* params){
   static int buf_ptr = 0;
   static char str_buf[16] = {0};
 
@@ -41,7 +43,13 @@ void serial_read_tast(void* params){
       buf_ptr = 0;
       memset(str_buf,0x00,16);
       continue;
+    } else if (byte == 9){
+      elceder_fill_row(1,"%-16s     ",str_buf);
+      buf_ptr = 0;
+      memset(str_buf,0x00,16);
+      continue;
     }
+
     if (byte > 0){
       if (buf_ptr < 16){
         str_buf[buf_ptr++] = (char)byte;
@@ -72,17 +80,17 @@ void spawn_tasks(){
     NULL
   );
 
-  xTaskCreate(
-    wifi_task,
-    "wifi task",
-    10000,
-    NULL,
-    3,
-    NULL
-  );
+  // xTaskCreate(
+  //   wifi_task,
+  //   "wifi task",
+  //   10000,
+  //   NULL,
+  //   3,
+  //   NULL
+  // );
   
   xTaskCreate(
-    serial_read_tast,
+    serial_read_task,
     "serial task",
     10000,
     NULL,
@@ -94,8 +102,13 @@ void spawn_tasks(){
 
 void loop(){
   static int test = 0;
-  elceder_fill_row(1,"test %d",test++);
-  vTaskDelay(1000);
+  static uint8_t heartbeat_pattern[] = {1,0,0,1,0,0,0,0,0,0,0,0,0};
+
+  // elceder_fill_row(1,"test %d",test++);
+  
+  uint8_t pattern_index = (test++)% sizeof(heartbeat_pattern);
+  digitalWrite(PIN_LED, heartbeat_pattern[pattern_index]);
+  vTaskDelay(100);
 }
 
 
