@@ -1,5 +1,3 @@
-
-
 #include <Wire.h>
 #include <LiquidCrystal.h>
 
@@ -26,9 +24,8 @@ void elceder_init(){
     digitalWrite(PIN_5V_ENA, HIGH);
 
     lcd.backlight();
-    lcd.begin(LCD_LENGTH, LCD_ROW_COUNT); // initialize the lcd
-
-    lcd.home(); // go home
+    lcd.begin(LCD_LENGTH, LCD_ROW_COUNT);
+    lcd.home();
 
     elceder_msg_queue = xQueueCreate( LCD_ROW_COUNT, sizeof( elceder_msg_t ) );
     if (elceder_msg_queue == NULL){
@@ -36,15 +33,21 @@ void elceder_init(){
     }
 }
 
+void elcdeder_print_to_row(int row, char* const str_to_write){
+    lcd.setCursor(0, row);
+    lcd.print(str_to_write);
+
+    int delta_chars = LCD_LENGTH - strnlen(str_to_write,LCD_LENGTH);
+    for (int i = 0; i< delta_chars; i++){
+        lcd.write(" "); //oferwrite previous stuff
+    }
+}
+
 void elceder_queue_text(elceder_msg_t* msg){
     if (elceder_msg_queue != NULL){
-        xQueueSend( 
-            elceder_msg_queue,
-            ( void * ) msg,
-            0 
-        );
-    }
-    
+        xQueueSend( elceder_msg_queue,
+            (void *) msg, 0 );
+    }    
 }
 
 void elceder_fill_row(int row, const char* fmt, ...){
@@ -60,15 +63,6 @@ void elceder_fill_row(int row, const char* fmt, ...){
     va_end(args);
 }
 
-void elcdeder_print_to_row(int row, char* const str_to_write){
-    lcd.setCursor(0, row);
-    lcd.print(str_to_write);
-
-    int delta_chars = LCD_LENGTH - strnlen(str_to_write,LCD_LENGTH);
-    for (int i = 0; i< delta_chars; i++){
-        lcd.write(" ");
-    }
-}
 
 void elceder_task(void* params){
     elceder_init();
@@ -77,11 +71,9 @@ void elceder_task(void* params){
     char row_buf[LCD_ROW_COUNT][32] = {0};
 
     while(1){
-        BaseType_t queue_succ = xQueueReceive( 
-                                    elceder_msg_queue,
-                                    &msg,
-                                    0
-                                );                        
+        BaseType_t queue_succ = 
+            xQueueReceive( elceder_msg_queue,
+                &msg, 0 );                        
 
         if (queue_succ) {
             // memset(row_buf[msg.row],0x00,sizeof(row_buf[0]));
@@ -92,11 +84,12 @@ void elceder_task(void* params){
 
         for (int i = 0; i<LCD_ROW_COUNT; i++){
             int cur_buf_strlen = strlen(row_buf[i]);
+
+            // display must be redrawn only if string is longer than its' width
             if (cur_buf_strlen > LCD_LENGTH){
-                lcd.setCursor(0, i);
                 int print_scroll_offset = cur_buf_strlen - LCD_LENGTH;
 
-                //ofset T->: 0, 0, 0, 1, 2 ... N-1, N, N, N, 0...
+                //offset sequence: 0, 0, 0, 1, 2 ... N-1, N, N, N, 0...
                 int offset_this_tick = scroll_tick % (print_scroll_offset + 4) - 2;
                 if (offset_this_tick < 0) 
                     offset_this_tick = 0;
@@ -106,7 +99,6 @@ void elceder_task(void* params){
                 elcdeder_print_to_row(i,row_buf[i]+offset_this_tick);
             }
         }
-
         vTaskDelay(100);
     }    
 }

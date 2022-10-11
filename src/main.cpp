@@ -104,7 +104,7 @@ void touch_task (void* params){
       if (delta_touch > (accs[i] * trigger_factor)){
         if (button_pressed[i] == false){
           button_pressed[i] = true;
-          elceder_fill_row(0,"But %d press! A WPIERDOL CHCESZ?",i);
+          elceder_fill_row(0,"But %d press!",i);
         }
       } else {
         button_pressed[i] = false;
