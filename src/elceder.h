@@ -1,7 +1,7 @@
 
 
 typedef struct {
-    char str[17];
+    char str[32];
     uint8_t row;
 } elceder_msg_t;
 

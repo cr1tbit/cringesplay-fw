@@ -31,7 +31,7 @@ void update_wifi_status()
   }
   timeoutCounterMs = 0;
   if (recently_connected){
-    elceder_fill_row(1,"%s    ",WiFi.localIP().toString().c_str());
+    elceder_fill_row(1,"%s",WiFi.localIP().toString().c_str());
     Serial.printf("My IP: %s",WiFi.localIP().toString().c_str());
     recently_connected = false;
   }

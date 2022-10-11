@@ -46,12 +46,13 @@ void serial_read_task(void* params){
       buf_ptr = 0;
       memset(str_buf,0x00,16);
       continue;
-    } else if (byte == 9){
-      elceder_fill_row(1,"%-16s     ",str_buf);
-      buf_ptr = 0;
-      memset(str_buf,0x00,16);
-      continue;
     }
+    // } else if (byte == 9){
+    //   elceder_fill_row(1,"%-16s     ",str_buf);
+    //   buf_ptr = 0;
+    //   memset(str_buf,0x00,16);
+    //   continue;
+    // }
 
     if (byte > 0){
       if (buf_ptr < 16){
@@ -71,8 +72,8 @@ const float sum_factor = 1.0f-addition_factor;
 // for example let it be 80
 // by trial and error, touching a cap button
 // increases the read value by about 10%
-// so I assume 5% increase for now.
-const float trigger_factor = 0.05f;
+// so I assume 7% increase for now.
+const float trigger_factor = 0.07f;
 
 const int cbuts[3] = {33, 27, 14};
 
@@ -103,7 +104,7 @@ void touch_task (void* params){
       if (delta_touch > (accs[i] * trigger_factor)){
         if (button_pressed[i] == false){
           button_pressed[i] = true;
-          elceder_fill_row(0,"But %d press!",i);
+          elceder_fill_row(0,"But %d press! A WPIERDOL CHCESZ?",i);
         }
       } else {
         button_pressed[i] = false;
@@ -133,81 +134,41 @@ void touch_task (void* params){
 void diagnostics_task(void * parameter);
 
 void spawn_tasks(){
-  xTaskCreate(
-    stripper_task,
-    "stripper task",
-    1000,
-    NULL,
-    6,
-    NULL
-  );
+  xTaskCreate( stripper_task, "stripper task",
+    1000, NULL, 6, NULL );
   
-  xTaskCreate(
-    elceder_task,
-    "elceder task",
-    1000,
-    NULL,
-    1,
-    NULL
-  );
+  xTaskCreate( elceder_task, "elceder task",
+    1000, NULL, 1, NULL );
 
-  xTaskCreate(
-    wifi_task,
-    "wifi task",
-    10000,
-    NULL,
-    3,
-    NULL
-  );
+  xTaskCreate( wifi_task, "wifi task",
+    10000, NULL, 3, NULL );
   
-  // xTaskCreate(
-  //   serial_read_task,
-  //   "serial task",
-  //   10000,
-  //   NULL,
-  //   3,
-  //   NULL
-  // );
+  xTaskCreate( serial_read_task, "serial task",
+    10000,NULL, 3, NULL );
 
-xTaskCreate(
-    touch_task,
-    "touch task",
-    10000,
-    NULL,
-    3,
-    NULL
-  );
+xTaskCreate( touch_task, "touch task",
+    10000, NULL, 3, NULL );
 
-xTaskCreate(
-    diagnostics_task,
-    "diag task",
-    10000,
-    NULL,
-    3,
-    NULL
-  );
-
+xTaskCreate( diagnostics_task, "diag task",
+    10000, NULL, 3, NULL );
 }
 
 
-//this will print CPU usage stats at some point
+// this will maybe print CPU usage stats at some point
+// but it would require us to switch to espidf framework
+// as freertos kernel for aduino is baked in.
 
 void diagnostics_task(void * parameter){
-  char diag_buff[256];
-
-
   TickType_t xLastWakeTime;
-  const TickType_t xFrequency = 100;
+  const TickType_t xFrequency = 20 * 1000;
   xLastWakeTime = xTaskGetTickCount();
 
   while(1){
     // vTaskGetRunTimeStats((char*)&diag_buff);
     // //Serial.println((char*)&diag_buff);
     // Serial.println("test");
-
     // Serial.printf( "%d\n\r", (int)uxTaskGetStackHighWaterMark( NULL ));
 
     vTaskDelayUntil(&xLastWakeTime,xFrequency);
-
   }
 }

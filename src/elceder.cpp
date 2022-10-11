@@ -15,24 +15,24 @@ LiquidCrystal lcd(PIN_RS, PIN_EN, PIN_4, PIN_5, PIN_6, PIN_7, 23, POSITIVE);
 
 QueueHandle_t elceder_msg_queue;
 
+#define LCD_ROW_COUNT 2
+#define LCD_LENGTH 16
 
 void elceder_init(){
-
     pinMode(PIN_LED, OUTPUT);
     pinMode(PIN_5V_ENA, OUTPUT);
-
 
     digitalWrite(PIN_LED, HIGH);
     digitalWrite(PIN_5V_ENA, HIGH);
 
     lcd.backlight();
-    lcd.begin(16, 2); // initialize the lcd
+    lcd.begin(LCD_LENGTH, LCD_ROW_COUNT); // initialize the lcd
 
     lcd.home(); // go home
 
-    elceder_msg_queue = xQueueCreate( 2, sizeof( elceder_msg_t ) );
+    elceder_msg_queue = xQueueCreate( LCD_ROW_COUNT, sizeof( elceder_msg_t ) );
     if (elceder_msg_queue == NULL){
-        lcd.print("queue failed");
+        lcd.print("lcd queue error");
     }
 }
 
@@ -60,18 +60,53 @@ void elceder_fill_row(int row, const char* fmt, ...){
     va_end(args);
 }
 
+void elcdeder_print_to_row(int row, char* const str_to_write){
+    lcd.setCursor(0, row);
+    lcd.print(str_to_write);
+
+    int delta_chars = LCD_LENGTH - strnlen(str_to_write,LCD_LENGTH);
+    for (int i = 0; i< delta_chars; i++){
+        lcd.write(" ");
+    }
+}
+
 void elceder_task(void* params){
     elceder_init();
     elceder_msg_t msg;
 
-    while(1){
-        xQueueReceive( 
-            elceder_msg_queue,
-            &msg,
-            portMAX_DELAY
-        );                        
+    char row_buf[LCD_ROW_COUNT][32] = {0};
 
-        lcd.setCursor(0, msg.row);
-        lcd.print(msg.str);
-    }
+    while(1){
+        BaseType_t queue_succ = xQueueReceive( 
+                                    elceder_msg_queue,
+                                    &msg,
+                                    0
+                                );                        
+
+        if (queue_succ) {
+            // memset(row_buf[msg.row],0x00,sizeof(row_buf[0]));
+            strncpy(row_buf[msg.row],msg.str,sizeof(row_buf[0]));
+            elcdeder_print_to_row(msg.row,msg.str);
+        }
+        int scroll_tick = xTaskGetTickCount()/666;
+
+        for (int i = 0; i<LCD_ROW_COUNT; i++){
+            int cur_buf_strlen = strlen(row_buf[i]);
+            if (cur_buf_strlen > LCD_LENGTH){
+                lcd.setCursor(0, i);
+                int print_scroll_offset = cur_buf_strlen - LCD_LENGTH;
+
+                //ofset T->: 0, 0, 0, 1, 2 ... N-1, N, N, N, 0...
+                int offset_this_tick = scroll_tick % (print_scroll_offset + 4) - 2;
+                if (offset_this_tick < 0) 
+                    offset_this_tick = 0;
+                if (offset_this_tick > print_scroll_offset) 
+                    offset_this_tick = print_scroll_offset;
+
+                elcdeder_print_to_row(i,row_buf[i]+offset_this_tick);
+            }
+        }
+
+        vTaskDelay(100);
+    }    
 }
