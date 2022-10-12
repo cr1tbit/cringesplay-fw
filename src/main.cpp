@@ -33,7 +33,7 @@ void loop(){
 
 void serial_read_task(void* params){
   static int buf_ptr = 0;
-  static char str_buf[16] = {0};
+  static char str_buf[32] = {0};
 
   Serial.setTimeout(0);
 
@@ -42,20 +42,19 @@ void serial_read_task(void* params){
 
     int byte = Serial.read();
     if (byte == 13){
-      elceder_fill_row(0,"%-16s     ",str_buf);
+      elceder_fill_row(0,0,"%s",str_buf);
       buf_ptr = 0;
-      memset(str_buf,0x00,16);
+      memset(str_buf,0x00,32);
+      continue;
+    } else if (byte == 9){
+      elceder_fill_row(1,0,"%s",str_buf);
+      buf_ptr = 0;
+      memset(str_buf,0x00,32);
       continue;
     }
-    // } else if (byte == 9){
-    //   elceder_fill_row(1,"%-16s     ",str_buf);
-    //   buf_ptr = 0;
-    //   memset(str_buf,0x00,16);
-    //   continue;
-    // }
 
     if (byte > 0){
-      if (buf_ptr < 16){
+      if (buf_ptr < 32){
         str_buf[buf_ptr++] = (char)byte;
       }
     } else {
@@ -74,6 +73,9 @@ const float sum_factor = 1.0f-addition_factor;
 // increases the read value by about 10%
 // so I assume 7% increase for now.
 const float trigger_factor = 0.07f;
+
+//sometimes captouch glitches - ignore those values
+const float glitch_factor = 0.20f;
 
 const int cbuts[3] = {33, 27, 14};
 
@@ -101,30 +103,15 @@ void touch_task (void* params){
       }
 
       float delta_touch = accs[i]-meases[i];
-      if (delta_touch > (accs[i] * trigger_factor)){
+      if ((delta_touch > (accs[i] * trigger_factor))&&(delta_touch < (accs[i] * glitch_factor))){
         if (button_pressed[i] == false){
           button_pressed[i] = true;
-          elceder_fill_row(0,"But %d press!",i);
+          elceder_fill_row(0,5000,"B%d %02d|%02d|%02d",i,(int)accs[i],(int)meases[i],(int)delta_touch);
         }
       } else {
         button_pressed[i] = false;
       }
     }
-
-    // elceder_fill_row(
-    //   0,"%03d/%03d/%03d/%04d",
-    //   (int)meases[0],
-    //   (int)meases[1],
-    //   (int)meases[2],
-    //   counter%10000
-    // );
-      
-    // elceder_fill_row(
-    //   0,"%03d/%03d/%03d       ",
-    //   (int)(accs[0]-meases[0]),
-    //   (int)(accs[1]-meases[1]),
-    //   (int)(accs[2]-meases[2])
-    // );
     counter++;
     xTaskResumeAll();
     vTaskDelay(100);
@@ -133,26 +120,27 @@ void touch_task (void* params){
 
 void diagnostics_task(void * parameter);
 
+TaskHandle_t task_handles[10] = {0};
+
 void spawn_tasks(){
   xTaskCreate( stripper_task, "stripper task",
-    1000, NULL, 6, NULL );
-  
+    1500, NULL, 6, &task_handles[0] );
+    
   xTaskCreate( elceder_task, "elceder task",
-    1000, NULL, 1, NULL );
+    1500, NULL, 1, &task_handles[1] );
 
   xTaskCreate( wifi_task, "wifi task",
-    10000, NULL, 3, NULL );
-  
+    5000, NULL, 3, &task_handles[2] );  
+
   xTaskCreate( serial_read_task, "serial task",
-    10000,NULL, 3, NULL );
+    2000,NULL, 3, &task_handles[3] );
 
-xTaskCreate( touch_task, "touch task",
-    10000, NULL, 3, NULL );
+  xTaskCreate( touch_task, "touch task",
+    2000, NULL, 3, &task_handles[4] );
 
-xTaskCreate( diagnostics_task, "diag task",
-    10000, NULL, 3, NULL );
+  xTaskCreate( diagnostics_task, "diag task",
+    3000, NULL, 3, &task_handles[5] );
 }
-
 
 // this will maybe print CPU usage stats at some point
 // but it would require us to switch to espidf framework
@@ -160,15 +148,18 @@ xTaskCreate( diagnostics_task, "diag task",
 
 void diagnostics_task(void * parameter){
   TickType_t xLastWakeTime;
-  const TickType_t xFrequency = 20 * 1000;
+  const TickType_t xFrequency = 30 * 1000;
   xLastWakeTime = xTaskGetTickCount();
 
   while(1){
-    // vTaskGetRunTimeStats((char*)&diag_buff);
-    // //Serial.println((char*)&diag_buff);
-    // Serial.println("test");
-    // Serial.printf( "%d\n\r", (int)uxTaskGetStackHighWaterMark( NULL ));
-
+    for (int i = 0; i< 10;i++){
+      if (task_handles[i] != 0){
+        Serial.printf(
+           "%s: %d\n\r", 
+           pcTaskGetTaskName(task_handles[i]),
+           (int)uxTaskGetStackHighWaterMark( task_handles[i] ));
+      }      
+    }
     vTaskDelayUntil(&xLastWakeTime,xFrequency);
   }
 }

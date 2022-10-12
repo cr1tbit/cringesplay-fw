@@ -2,6 +2,8 @@
 #include <ArduinoOTA.h>
 #include "secrets.h"
 
+#include "elceder.h"
+
 
 void handle_io_pattern(uint8_t pin, led_patterns_type_t target_pattern){
   static uint32_t pattern_counter = 0;
@@ -46,10 +48,12 @@ void begin_hspota(){
     });
     ArduinoOTA.onEnd([]() {
       Serial.println("\nEnd");
+      elceder_fill_row(0,1000,"OTA OK, reset...");
     });
 
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
       Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+      elceder_fill_row(0,1000,"OTA status: %u%%", (progress / (total / 100)));
     });
 
     ArduinoOTA.onError([](ota_error_t error) {

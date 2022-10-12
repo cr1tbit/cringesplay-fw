@@ -50,25 +50,33 @@ void elceder_queue_text(elceder_msg_t* msg){
     }    
 }
 
-void elceder_fill_row(int row, const char* fmt, ...){
-    elceder_msg_t test_msg;
+void elceder_fill_row(int row, int message_timeout_ms, const char* fmt, ...){
+    elceder_msg_t _msg;
     va_list args;
 
     va_start(args, fmt);
 
-    vsnprintf(test_msg.str, sizeof(test_msg.str), fmt, args);
-    test_msg.row = row;
+    vsnprintf(_msg.str, sizeof(_msg.str), fmt, args);
+    _msg.row = row;
+    _msg.message_timeout = message_timeout_ms;
 
-    elceder_queue_text(&test_msg);
+    elceder_queue_text(&_msg);
     va_end(args);
 }
-
 
 void elceder_task(void* params){
     elceder_init();
     elceder_msg_t msg;
 
+    char default_row_buf[LCD_ROW_COUNT][32] = {0};
     char row_buf[LCD_ROW_COUNT][32] = {0};
+    TickType_t row_timeout_tick[2];
+
+    strncpy(
+        default_row_buf[0],
+        "Cringesplay firmware demo :)",
+        sizeof(default_row_buf[0])
+    );
 
     while(1){
         BaseType_t queue_succ = 
@@ -76,13 +84,27 @@ void elceder_task(void* params){
                 &msg, 0 );                        
 
         if (queue_succ) {
-            // memset(row_buf[msg.row],0x00,sizeof(row_buf[0]));
             strncpy(row_buf[msg.row],msg.str,sizeof(row_buf[0]));
             elcdeder_print_to_row(msg.row,msg.str);
+            if (msg.message_timeout == 0){
+                //fill the default buf for non-ephemeral messages
+                strncpy(default_row_buf[msg.row],msg.str,sizeof(default_row_buf[0]));
+                row_timeout_tick[msg.row] = 0;
+            } else {
+                row_timeout_tick[msg.row] = xTaskGetTickCount() + msg.message_timeout;
+            }
         }
         int scroll_tick = xTaskGetTickCount()/666;
 
         for (int i = 0; i<LCD_ROW_COUNT; i++){
+            //display may be ordered to view message temporarily
+            if (row_timeout_tick[i] != 0){
+                if (xTaskGetTickCount() > row_timeout_tick[i]){
+                    strncpy(row_buf[i],default_row_buf[i],sizeof(row_buf[0]));
+                    row_timeout_tick[i] = 0;
+                    elcdeder_print_to_row(i,default_row_buf[i]);
+                }
+            }
             int cur_buf_strlen = strlen(row_buf[i]);
 
             // display must be redrawn only if string is longer than its' width
