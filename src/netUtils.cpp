@@ -13,6 +13,8 @@
 #define WIFI_RST_TIMEOUT_MS 1000*30
 #define WIFI_ATTEMPT_TICK_RATE 500
 
+HomieProperty* shitton = NULL;
+
 void update_wifi_status()
 {
   static bool recently_connected;
@@ -30,7 +32,6 @@ void update_wifi_status()
   }
   timeoutCounterMs = 0;
   if (recently_connected){
-    elceder_fill_row(1,0,"%s",WiFi.localIP().toString().c_str());
     Serial.printf("My IP: %s",WiFi.localIP().toString().c_str());
     recently_connected = false;
   }
@@ -39,14 +40,30 @@ void update_wifi_status()
 HomieDevice homie;
 
 void init_homie_stuff(HomieDevice* pHomie){
-  pHomie->strFriendlyName = "Cringesplay demo";
-  pHomie->strID = "cringesplay";
+  pHomie->strFriendlyName = "domohsp-alpha";
+  pHomie->strID = "domohsp-alpha";
   pHomie->strID.toLowerCase();
 
-  pHomie->strMqttServerIP = "192.168.0.44";
-	// pHomie->strMqttUserName = MQTT_USERNAME;
-	// pHomie->strMqttPassword = MQTT_PASSWD;
+  pHomie->strMqttServerIP = "192.168.88.170";
+	pHomie->strMqttUserName = MQTT_USERNAME;
+	pHomie->strMqttPassword = MQTT_PASSWD;
   pHomie->Init();
+}
+
+
+HomieProperty* init_shitton(HomieNode* pNode, int pin_num, String id){
+  // Button* pButton = new Button(pin_num, INPUT);
+  HomieProperty *pProperty = pNode->NewProperty();
+
+  pProperty->strFriendlyName = id;
+  pProperty->strID = id;
+  pProperty->datatype = homieBool;
+  pProperty->SetBool(true);
+  pProperty->strFormat = "";
+  // pButton->onChange([pButton,pProperty]() {
+  //   pProperty->SetBool(pButton->isPressed());
+  // });
+  return pProperty;
 }
 
 void wifi_task(void* params){
@@ -60,13 +77,24 @@ void wifi_task(void* params){
   pNode->strID = "properties";
   pNode->strFriendlyName = "Properties";
 
+  shitton = init_shitton(pNode, 0, "shitton");
+
   init_homie_stuff(&homie);  
+
+  int wifi_loop_cnt = 0;
 
   while(1){
     update_wifi_status();
     ArduinoOTA.handle();
     homie.Loop();
 
+    if ((wifi_loop_cnt%100) == 0){
+      elceder_fill_row(1,0,"%s",WiFi.localIP().toString().c_str());
+    } else if ((wifi_loop_cnt%50) == 0){
+      elceder_fill_row(1,0,"MQTT status: %s",homie.IsConnected()? "yes" : "no");
+    }
+
+    wifi_loop_cnt++;
     vTaskDelay(100);
   }
 }

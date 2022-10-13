@@ -106,10 +106,21 @@ void touch_task (void* params){
       if ((delta_touch > (accs[i] * trigger_factor))&&(delta_touch < (accs[i] * glitch_factor))){
         if (button_pressed[i] == false){
           button_pressed[i] = true;
-          elceder_fill_row(0,5000,"B%d %02d|%02d|%02d",i,(int)accs[i],(int)meases[i],(int)delta_touch);
+          // elceder_fill_row(
+          //   0,5000,"B%d %02d|%02d|%02d",i,
+          //   (int)accs[i],(int)meases[i],(int)delta_touch
+          // );
+          if ((i == 1)&&(shitton != NULL)){
+            shitton->SetBool(true);
+            elceder_fill_row(0,2000,"DINGFUCKINDONG!");
+          }
         }
       } else {
         button_pressed[i] = false;
+        if ((i == 1)&&(shitton != NULL)){
+          if (shitton->GetValue().equals("true"))
+          shitton->SetBool(false);
+        }
       }
     }
     counter++;
@@ -123,8 +134,8 @@ void diagnostics_task(void * parameter);
 TaskHandle_t task_handles[10] = {0};
 
 void spawn_tasks(){
-  xTaskCreate( stripper_task, "stripper task",
-    1500, NULL, 6, &task_handles[0] );
+  // xTaskCreate( stripper_task, "stripper task",
+  //   1500, NULL, 6, &task_handles[0] );
     
   xTaskCreate( elceder_task, "elceder task",
     3000, NULL, 2, &task_handles[1] );
