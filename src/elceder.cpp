@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <LiquidCrystal.h>
+#include <ArduinoLog.h>
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -7,11 +8,13 @@
 #include "elceder.h"
 #include "pinDefs.h"
 
+
+
 #define CONTRAST 110
 
 LiquidCrystal lcd(PIN_RS, PIN_EN, PIN_4, PIN_5, PIN_6, PIN_7, 23, POSITIVE);
 
-QueueHandle_t elceder_msg_queue;
+QueueHandle_t elceder_msg_queue = NULL;
 
 #define LCD_ROW_COUNT 2
 #define LCD_LENGTH 16
@@ -26,6 +29,8 @@ void elceder_init(){
     lcd.backlight();
     lcd.begin(LCD_LENGTH, LCD_ROW_COUNT);
     lcd.home();
+
+    Log.infoln("Elceder initialized...");
 
     elceder_msg_queue = xQueueCreate( LCD_ROW_COUNT, sizeof( elceder_msg_t ) );
     if (elceder_msg_queue == NULL){
@@ -59,6 +64,8 @@ void elceder_fill_row(int row, int message_timeout_ms, const char* fmt, ...){
     vsnprintf(_msg.str, sizeof(_msg.str), fmt, args);
     _msg.row = row;
     _msg.message_timeout = message_timeout_ms;
+
+    Log.infoln("LCD r%d: %s",row, _msg.str);
 
     elceder_queue_text(&_msg);
     va_end(args);

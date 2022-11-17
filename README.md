@@ -9,3 +9,5 @@ https://github.com/cr1tbit/LCD-thing
 ![Render](img/lcd_front.jpg)
 
 ![Render](img/lcd_back.jpg)
+
+add `#include <vector>` in HomieNode.h

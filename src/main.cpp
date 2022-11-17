@@ -1,13 +1,13 @@
 #include <Arduino.h>
-
-#include "netUtils.h"
 #include <Button2.h>
+#include <ArduinoLog.h>
 
 #include "pinDefs.h"
 #include "stripper.h"
 #include "elceder.h"
-
+#include "netUtils.h"
 #include "commonFwUtils.h"
+
 
 Button2 button;
 
@@ -19,9 +19,13 @@ void spawn_tasks();
 void setup()
 {
   Serial.begin(115200);
+
+  Log.begin(LOG_LEVEL_VERBOSE, &Serial);
+  Log.infoln("Initalizing board...");
+
   spawn_tasks();
 
-  button.begin(PIN_BUT,INPUT,false, true);
+  button.begin(PIN_BUT,INPUT,false);
   button.setTapHandler(pressCB);
   pinMode(PIN_LED, OUTPUT);  
 }
@@ -87,7 +91,7 @@ void touch_task (void* params){
   bool button_pressed[3] = {0,0,0};
 
   while (true){
-    vTaskSuspendAll(); //block task switch cause it messes with touchRead
+    // vTaskSuspendAll(); //block task switch cause it messes with touchRead
 
     for (int i=0;i<3;i++){
       meases[i] = (float)touchRead(cbuts[i]);
@@ -113,7 +117,7 @@ void touch_task (void* params){
       }
     }
     counter++;
-    xTaskResumeAll();
+    // xTaskResumeAll();
     vTaskDelay(100);
   }
 }
@@ -127,10 +131,10 @@ void spawn_tasks(){
     1500, NULL, 6, &task_handles[0] );
     
   xTaskCreate( elceder_task, "elceder task",
-    1500, NULL, 1, &task_handles[1] );
+    3300, NULL, 1, &task_handles[1] );
 
   xTaskCreate( wifi_task, "wifi task",
-    5000, NULL, 3, &task_handles[2] );  
+    25000, NULL, 3, &task_handles[2] );  
 
   xTaskCreate( serial_read_task, "serial task",
     2000,NULL, 3, &task_handles[3] );
@@ -152,10 +156,16 @@ void diagnostics_task(void * parameter){
   xLastWakeTime = xTaskGetTickCount();
 
   while(1){
+    int uptime_sec = xTaskGetTickCount()/1000;
+    Serial.printf(
+      "\nBoard uptime: %dm %02ds \n\r"
+      "Free task heap:\n\r",
+      uptime_sec/60, uptime_sec%60
+    );
     for (int i = 0; i< 10;i++){
       if (task_handles[i] != 0){
         Serial.printf(
-           "%s: %d\n\r", 
+           "%-16s%d\n\r", 
            pcTaskGetTaskName(task_handles[i]),
            (int)uxTaskGetStackHighWaterMark( task_handles[i] ));
       }      
