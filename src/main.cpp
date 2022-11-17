@@ -91,7 +91,7 @@ void touch_task (void* params){
   bool button_pressed[3] = {0,0,0};
 
   while (true){
-    // vTaskSuspendAll(); //block task switch cause it messes with touchRead
+    vTaskPrioritySet(NULL,1);  //block task switch cause it messes with touchRead
 
     for (int i=0;i<3;i++){
       meases[i] = (float)touchRead(cbuts[i]);
@@ -117,7 +117,7 @@ void touch_task (void* params){
       }
     }
     counter++;
-    // xTaskResumeAll();
+    vTaskPrioritySet(NULL,3);
     vTaskDelay(100);
   }
 }
@@ -131,10 +131,10 @@ void spawn_tasks(){
     1500, NULL, 6, &task_handles[0] );
     
   xTaskCreate( elceder_task, "elceder task",
-    3300, NULL, 1, &task_handles[1] );
+    3000, NULL, 2, &task_handles[1] );
 
   xTaskCreate( wifi_task, "wifi task",
-    25000, NULL, 3, &task_handles[2] );  
+    5000, NULL, 3, &task_handles[2] ); 
 
   xTaskCreate( serial_read_task, "serial task",
     2000,NULL, 3, &task_handles[3] );

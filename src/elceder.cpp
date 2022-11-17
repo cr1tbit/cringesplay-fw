@@ -85,6 +85,8 @@ void elceder_task(void* params){
         sizeof(default_row_buf[0])
     );
 
+    elceder_fill_row(0,2000,"Hello world!");
+
     while(1){
         BaseType_t queue_succ = 
             xQueueReceive( elceder_msg_queue,
