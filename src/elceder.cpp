@@ -8,6 +8,7 @@
 #include "elceder.h"
 #include "pinDefs.h"
 
+#include "cringesplayFwSetup.h"
 
 
 #define CONTRAST 110
@@ -29,6 +30,9 @@ void elceder_init(){
     lcd.backlight();
     lcd.begin(LCD_LENGTH, LCD_ROW_COUNT);
     lcd.home();
+
+    lcd.createChar(1,(uint8_t* const)customCharArray[0]);
+    lcd.createChar(2,(uint8_t* const)customCharArray[1]);
 
     Log.infoln("Elceder initialized...");
 
@@ -81,9 +85,17 @@ void elceder_task(void* params){
 
     strncpy(
         default_row_buf[0],
-        "Cringesplay firmware demo :)",
+        cfw_splash_text_l0,
         sizeof(default_row_buf[0])
     );
+
+    if (strnlen(cfw_splash_text_l1,3) > 0){
+        strncpy(
+            default_row_buf[1],
+            cfw_splash_text_l1,
+            sizeof(default_row_buf[0])
+        );
+    }    
 
     elceder_fill_row(0,2000,"Hello world!");
 

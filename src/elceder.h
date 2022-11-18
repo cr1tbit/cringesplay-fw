@@ -1,4 +1,6 @@
+#pragma once
 
+#define ELCEDER_NO_TIMEOUT
 
 typedef struct {
     char str[32];

@@ -4,6 +4,7 @@
 
 #include "pinDefs.h"
 #include "stripper.h"
+#include "toucher.h"
 #include "elceder.h"
 #include "netUtils.h"
 #include "commonFwUtils.h"
@@ -16,6 +17,10 @@ void pressCB(Button2& btn) {
 }
 void spawn_tasks();
 
+void touchbut_cb(){
+    elceder_fill_row(1,2000,"DINGDONG");  
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -27,11 +32,14 @@ void setup()
 
   button.begin(PIN_BUT,INPUT,false);
   button.setTapHandler(pressCB);
-  pinMode(PIN_LED, OUTPUT);  
+  pinMode(PIN_LED, OUTPUT);
+
+  attach_cb(touchbut_cb);
 }
 
 void loop(){
   handle_io_pattern(PIN_LED,PATTERN_HBEAT);
+  button.loop();
   vTaskDelay(150);
 }
 
@@ -42,7 +50,6 @@ void serial_read_task(void* params){
   Serial.setTimeout(0);
 
   while (true){
-    button.loop();
 
     int byte = Serial.read();
     if (byte == 13){
@@ -67,60 +74,6 @@ void serial_read_task(void* params){
   }
 }
 
-const float aver_ratio = 1000.0f;
-const float addition_factor = 1.0f/aver_ratio;
-const float sum_factor = 1.0f-addition_factor;
-
-// the value read from cap is in range 0-100
-// for example let it be 80
-// by trial and error, touching a cap button
-// increases the read value by about 10%
-// so I assume 7% increase for now.
-const float trigger_factor = 0.07f;
-
-//sometimes captouch glitches - ignore those values
-const float glitch_factor = 0.20f;
-
-const int cbuts[3] = {33, 27, 14};
-
-void touch_task (void* params){
-  float accs[3] = {0,0,0};
-  float meases[3] = {0,0,0};
-  uint32_t counter = 0;
-
-  bool button_pressed[3] = {0,0,0};
-
-  while (true){
-    vTaskPrioritySet(NULL,1);  //block task switch cause it messes with touchRead
-
-    for (int i=0;i<3;i++){
-      meases[i] = (float)touchRead(cbuts[i]);
-
-      //update averaging buffers
-      if (accs[i] < 30){
-        //on first run skip averaging
-        accs[i] = meases[i];
-      } else {
-        accs[i] = 
-          accs[i]*sum_factor + 
-          meases[i]*addition_factor;
-      }
-
-      float delta_touch = accs[i]-meases[i];
-      if ((delta_touch > (accs[i] * trigger_factor))&&(delta_touch < (accs[i] * glitch_factor))){
-        if (button_pressed[i] == false){
-          button_pressed[i] = true;
-          elceder_fill_row(0,5000,"B%d %02d|%02d|%02d",i,(int)accs[i],(int)meases[i],(int)delta_touch);
-        }
-      } else {
-        button_pressed[i] = false;
-      }
-    }
-    counter++;
-    vTaskPrioritySet(NULL,3);
-    vTaskDelay(100);
-  }
-}
 
 void diagnostics_task(void * parameter);
 
