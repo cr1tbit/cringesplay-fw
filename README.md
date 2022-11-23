@@ -12,7 +12,7 @@ https://github.com/cr1tbit/LCD-thing
 
 If the Homie library throws some errors, add `#include <vector>` in HomieNode.h
 
-For info about secrets generation - see 
+For info about secrets generation - see:
 
 https://github.com/hspsh/cookie-pio-iot/tree/main/%7B%7B%20cookiecutter.project_slug%20%7D%7D
 
