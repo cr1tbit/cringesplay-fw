@@ -9,18 +9,6 @@
 #include "netUtils.h"
 #include "commonFwUtils.h"
 
-// force C linkage for app_main()
-extern "C" {
-	void app_main(void);
-}
-
-void app_main(){
-  setup();
-  for(;;){
-    loop();
-  }
-}
-
 Button2 button;
 
 void pressCB(Button2& btn) {
